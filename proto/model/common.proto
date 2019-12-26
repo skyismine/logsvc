@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// 定义生成文件的存储位置和import该文件的proto文件生成go源码后的import地址
+option go_package = "logsvc/proto/model";
+
+package model;
+
+message LogRequest {
+    string app = 1;
+    string tag = 2;
+    map<string, string> field = 3;
+    string msg = 4;
+}
+
+message LogResponse {
+    string msg = 1;
+}
