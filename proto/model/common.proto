@@ -6,10 +6,14 @@ option go_package = "logsvc/proto/model";
 package model;
 
 message LogRequest {
+    // app 名称
     string app = 1;
+    // log 标签
     string tag = 2;
-    map<string, string> field = 3;
-    string msg = 4;
+    // log 信息
+    string msg = 3;
+    // log 客户端生成时间
+    string ctime = 4;
 }
 
 message LogResponse {

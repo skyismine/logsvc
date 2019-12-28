@@ -5,61 +5,81 @@ import (
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-plugins/registry/etcdv3"
-	"github.com/sirupsen/logrus"
 	"log"
 	"logsvc/proto/model"
 	"logsvc/proto/rpcapi"
+	"time"
 )
 
-func logfunc(in *model.LogRequest, out *model.LogResponse, level logrus.Level) {
-	fields := make(logrus.Fields)
-	for key, value := range in.Field {
-		fields[key] = value
-	}
-	logrus.WithFields(logrus.Fields{"app": in.App, "tag": in.Tag}).WithFields(fields).Log(level, in.Msg)
+const (
+	Trace = "trace"
+	Debug = "debug"
+	Info = "info"
+	Warn = "warn"
+	Error = "error"
+	Fatal = "fatal"
+	Panic = "panic"
+)
+
+type Logmsg struct {
+	App 	string	`json:"app"`
+	Level 	string 	`json:"level"`
+	Tag 	string 	`json:"tag"`
+	Msg 	string 	`json:"msg"`
+	Ctime 	string 	`json:"ctime"`
+	Stime   string	`json:"stime"`
+}
+
+func logger(in *model.LogRequest, out *model.LogResponse, level string) {
+	data := new(Logmsg)
+	data.App = in.App
+	data.Level = level
+	data.Tag = in.Tag
+	data.Msg = in.Msg
+	data.Ctime = in.Ctime
+	data.Stime = time.Now().Format(time.RFC3339Nano)
+	mgodbinsert(data.App, data)
 	out.Msg = "logsvc success"
 }
 
 type LogSvc struct {}
 
 func (h *LogSvc) Trace(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.TraceLevel)
+	logger(in, out, Trace)
 	return nil
 }
 
 func (h *LogSvc) Debug(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.DebugLevel)
+	logger(in, out, Debug)
 	return nil
 }
 
 func (h *LogSvc) Info(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.InfoLevel)
+	logger(in, out, Info)
 	return nil
 }
 
 func (h *LogSvc) Warn(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.WarnLevel)
+	logger(in, out, Warn)
 	return nil
 }
 
 func (h *LogSvc) Error(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.ErrorLevel)
+	logger(in, out, Error)
 	return nil
 }
 
 func (h *LogSvc) Fatal(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.FatalLevel)
+	logger(in, out, Fatal)
 	return nil
 }
 
 func (h *LogSvc) Panic(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logfunc(in, out, logrus.PanicLevel)
+	logger(in, out, Panic)
 	return nil
 }
 
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-
 	//使用etcd做服务发现
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
