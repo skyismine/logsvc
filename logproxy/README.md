@@ -1,0 +1,5 @@
+# logproxy
+
+log代理,支持https,microrpc,rpc接口调用,可以对log做一些如格式化等预处理,使用go-micro微服务实现,支持分布式横向扩展,使用etcd做服务发现
+
+logagent将信息发送给logproxy处理也是为了避免和具体实现的绑定,如果logagent直接将消息发送给kafka等消息队列则就和该消息队列绑定了,在手机应用等非纯后端服务采集log的情况下因为客户端更新不易,这个解耦非常有必要

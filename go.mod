@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
+	github.com/Shopify/sarama v1.24.1
 	github.com/blevesearch/bleve v0.8.1
 	github.com/blevesearch/blevex v0.0.0-20190916190636-152f0fe5c040 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.2 // indirect
@@ -22,7 +23,6 @@ require (
 	github.com/micro/go-micro v1.18.0
 	github.com/micro/go-plugins v1.5.1
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237 // indirect
-	github.com/sirupsen/logrus v1.4.2
 	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c // indirect

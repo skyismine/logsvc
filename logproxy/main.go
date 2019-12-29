@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-plugins/registry/etcdv3"
 	"log"
+	"logsvc/logproxy/storage"
 	"logsvc/proto/model"
 	"logsvc/proto/rpcapi"
 	"time"
@@ -21,25 +23,22 @@ const (
 	Panic = "panic"
 )
 
-type Logmsg struct {
-	App 	string	`json:"app"`
-	Level 	string 	`json:"level"`
-	Tag 	string 	`json:"tag"`
-	Msg 	string 	`json:"msg"`
-	Ctime 	string 	`json:"ctime"`
-	Stime   string	`json:"stime"`
-}
+var store storage.IFStorage
 
 func logger(in *model.LogRequest, out *model.LogResponse, level string) {
-	data := new(Logmsg)
+	data := new(storage.Logmsg)
 	data.App = in.App
 	data.Level = level
 	data.Tag = in.Tag
 	data.Msg = in.Msg
 	data.Ctime = in.Ctime
 	data.Stime = time.Now().Format(time.RFC3339Nano)
-	mgodbinsert(data.App, data)
-	out.Msg = "logsvc success"
+	err := store.Save(data)
+	if err != nil {
+		out.Msg = fmt.Sprintf("Error: %v", err)
+	} else {
+		out.Msg = "Success"
+	}
 }
 
 type LogSvc struct {}
@@ -80,6 +79,7 @@ func (h *LogSvc) Panic(ctx context.Context, in *model.LogRequest, out *model.Log
 }
 
 func main() {
+	store = storage.NewStorageKafka("192.168.3.23")
 	//使用etcd做服务发现
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
