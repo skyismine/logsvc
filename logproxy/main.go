@@ -27,6 +27,7 @@ var store storage.IFStorage
 
 func logger(in *model.LogRequest, out *model.LogResponse, level string) {
 	data := new(storage.Logmsg)
+	data.Host = in.Host
 	data.App = in.App
 	data.Level = level
 	data.Tag = in.Tag

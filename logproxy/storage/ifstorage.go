@@ -6,6 +6,7 @@ type IFStorage interface {
 }
 
 type Logmsg struct {
+	Host 	string  `json:"host"`
 	App 	string	`json:"app"`
 	Level 	string 	`json:"level"`
 	Tag 	string 	`json:"tag"`
