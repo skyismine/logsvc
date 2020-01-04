@@ -10,12 +10,14 @@ message LogRequest {
     string host = 1;
     // app 名称
     string app = 2;
+    // log 等级
+    string level = 3;
     // log 标签
-    string tag = 3;
+    string tag = 4;
     // log 信息
-    string msg = 4;
+    string msg = 5;
     // log 客户端生成时间
-    string ctime = 5;
+    string ctime = 6;
 }
 
 message LogResponse {

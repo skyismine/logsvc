@@ -4,12 +4,6 @@ package rpcapi;
 
 import "model/common.proto";
 
-service Log {
-    rpc Trace(model.LogRequest) returns (model.LogResponse) {}
-    rpc Debug(model.LogRequest) returns (model.LogResponse) {}
-    rpc Info(model.LogRequest) returns (model.LogResponse) {}
-    rpc Warn(model.LogRequest) returns (model.LogResponse) {}
-    rpc Error(model.LogRequest) returns (model.LogResponse) {}
-    rpc Fatal(model.LogRequest) returns (model.LogResponse) {}
-    rpc Panic(model.LogRequest) returns (model.LogResponse) {}
+service Logger {
+    rpc Log(model.LogRequest) returns (model.LogResponse) {}
 }
