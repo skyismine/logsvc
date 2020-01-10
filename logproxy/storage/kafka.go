@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
-	"log"
+	"github.com/astaxie/beego/logs"
 )
 
 type StorageKafka struct {
@@ -20,7 +20,8 @@ func NewStorageKafka(addr string) *StorageKafka {
 	config.Producer.Return.Successes = true
 	kafka.kafkaclient, err = sarama.NewSyncProducer([]string{fmt.Sprintf("%s:9092", addr)}, config)
 	if err != nil{
-		log.Fatalln("producer close err:", err)
+		logs.Error("producer close err:", err)
+		return nil
 	}
 	return kafka
 }

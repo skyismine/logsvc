@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"github.com/astaxie/beego/logs"
 	"github.com/hpcloud/tail"
 	"github.com/micro/cli"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-plugins/registry/etcdv3"
-	"log"
 	"logsvc/logagent/tail/parser"
 	"logsvc/proto/model"
 	"logsvc/proto/rpcapi"
@@ -17,13 +17,14 @@ import (
 
 // usage: ./tail --log_file /work/CloudBox/logsvc/Bin/screen.log --log_app scrsvc --log_type gostd --log_seek 2
 func main() {
+	logs.Async(1e3)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/var/log/logsvc/tail.log"}`)
+
 	var filename, app, logtype string
 	var seek int
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
-			"192.168.3.23:2279",
-			"192.168.3.23:2280",
-			"192.168.3.23:2281",
+			"192.168.3.23:2379",
 		}
 	})
 
@@ -53,7 +54,7 @@ func main() {
 	service.Options().Cmd.App().Flags = append(service.Options().Cmd.App().Flags, svcflags...)
 	service.Init()
 	logsvcclient := rpcapi.NewLoggerClient("cb.srv.log", service.Client())
-	log.Println("tail log_file:", filename, ", log_app:", app, ", log_type:", logtype)
+	logs.Info("tail log_file:", filename, ", log_app:", app, ", log_type:", logtype)
 	tails, err := tail.TailFile(filename, tail.Config {
 		ReOpen: true,
 		Follow: true,
@@ -62,7 +63,8 @@ func main() {
 		Poll: true,
 	})
 	if err !=nil{
-		log.Fatalln("tail file err:",err)
+		logs.Error("tail file err:",err)
+		return
 	}
 	host, err := os.Hostname()
 	if err != nil {
@@ -74,27 +76,28 @@ func main() {
 	for {
 		msg, ok = <-tails.Lines
 		if !ok {
-			log.Printf("tail file close reopen,filenam:%s\n", filename)
+			logs.Info("tail file close reopen,filenam:%s\n", filename)
 			time.Sleep(100*time.Millisecond)
 			continue
 		}
 		line++
-		log.Println("tail line", line)
+		logs.Info("tail line", line)
 		if logparser, ok := parser.PManager[logtype]; ok {
 			var logmsg model.LogRequest
 			err := logparser.Unmarshal(msg.Text, &logmsg)
 			if err != nil {
-				log.Println("tail parser.Unmarshal error", err)
+				logs.Info("tail parser.Unmarshal error", err)
 				continue
 			}
 			logmsg.App = app
 			logmsg.Host = host
 			_, err = logsvcclient.Log(context.Background(), &logmsg)
 			if err != nil {
-				log.Fatalln("call srv error", err)
+				logs.Error("call srv error", err)
+				return
 			}
 		} else {
-			log.Println("tail no log parser for app", app)
+			logs.Info("tail no log parser for app", app)
 		}
 	}
 }

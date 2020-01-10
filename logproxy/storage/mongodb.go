@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"github.com/astaxie/beego/logs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"log"
 	"time"
 )
 
@@ -20,12 +20,14 @@ func NewStorageMongodb(addr string) *StorageMongodb {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	mongodb.mongoclient, err = mongo.Connect(ctx, options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:27017", addr)))
 	if err != nil {
-		log.Fatalln("init mongo.Connect error", err)
+		logs.Error("init mongo.Connect error", err)
+		return nil
 	}
 	ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)
 	err = mongodb.mongoclient.Ping(ctx, readpref.Primary())
 	if err != nil {
-		log.Fatalln("init mongoclient.Ping error", err)
+		logs.Error("init mongoclient.Ping error", err)
+		return nil
 	}
 	return mongodb
 }

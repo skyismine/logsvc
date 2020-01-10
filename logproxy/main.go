@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/astaxie/beego/logs"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-plugins/registry/etcdv3"
-	"log"
 	"logsvc/logproxy/storage"
 	"logsvc/proto/model"
 	"logsvc/proto/rpcapi"
@@ -36,13 +36,14 @@ func (h *LogSvc) Log(ctx context.Context, in *model.LogRequest, out *model.LogRe
 }
 
 func main() {
+	logs.Async(1e3)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/var/log/logsvc/logproxy.log"}`)
+
 	store = storage.NewStorageKafka("192.168.3.23")
 	//使用etcd做服务发现
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
-			"192.168.3.23:2279",
-			"192.168.3.23:2280",
-			"192.168.3.23:2281",
+			"192.168.3.23:2379",
 		}
 	})
 
@@ -51,6 +52,6 @@ func main() {
 	rpcapi.RegisterLoggerHandler(service.Server(), new(LogSvc))
 
 	if err := service.Run(); err != nil {
-		log.Fatalln("server log run error", err)
+		logs.Error("server log run error", err)
 	}
 }
