@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/astaxie/beego/logs"
 )
@@ -18,7 +17,7 @@ func NewStorageKafka(addr string) *StorageKafka {
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
 	config.Producer.Return.Successes = true
-	kafka.kafkaclient, err = sarama.NewSyncProducer([]string{fmt.Sprintf("%s:9092", addr)}, config)
+	kafka.kafkaclient, err = sarama.NewSyncProducer([]string{addr}, config)
 	if err != nil{
 		logs.Error("producer close err:", err)
 		return nil

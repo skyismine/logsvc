@@ -7,3 +7,5 @@ go build -o Bin/tail logsvc/logagent/tail
 go build -o Bin/proxy logsvc/logproxy
 
 go build -o Bin/searcher logsvc/logsearcher
+
+go build -o Bin/analysis logsvc/loganalysis

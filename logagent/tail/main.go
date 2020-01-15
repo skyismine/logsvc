@@ -17,18 +17,11 @@ import (
 
 // usage: ./tail --log_file /work/CloudBox/logsvc/Bin/screen.log --log_app scrsvc --log_type gostd --log_seek 2
 func main() {
-	logs.Async(1e3)
-	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/var/log/logsvc/tail.log"}`)
+	_ = logs.SetLogger(logs.AdapterConsole)
 
 	var filename, app, logtype string
 	var seek int
-	reg := etcdv3.NewRegistry(func(options *registry.Options) {
-		options.Addrs = []string{
-			"192.168.3.23:2379",
-		}
-	})
 
-	service := micro.NewService(micro.Registry(reg))
 	svcflags := []cli.Flag{
 		cli.StringFlag{
 			Name:   	 "log_file",
@@ -51,6 +44,14 @@ func main() {
 			Destination: &seek,
 		},
 	}
+	reg := etcdv3.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{
+			"192.168.3.23:2379",
+		}
+		etcdv3.Auth("root", "Erika6014")(options)
+	})
+
+	service := micro.NewService(micro.Registry(reg))
 	service.Options().Cmd.App().Flags = append(service.Options().Cmd.App().Flags, svcflags...)
 	service.Init()
 	logsvcclient := rpcapi.NewLoggerClient("cb.srv.log", service.Client())

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"CommonUtil/src/GYGUtils"
 	"context"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/astaxie/beego/logs"
+	"github.com/micro/cli"
 	"gopkg.in/olivere/elastic.v5"
+	"os"
 	"strings"
 )
 
@@ -20,17 +23,8 @@ func getMsgFromPC(partitionConsumer sarama.PartitionConsumer) {
 	}
 }
 
-func main() {
-	logs.Async(1e3)
-	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/var/log/logsvc/logsearcher.log"}`)
-
-	var err error
-	esclient, err = elastic.NewClient(elastic.SetSniff(false),elastic.SetURL("http://192.168.3.23:9200/"))
-	if err != nil{
-		logs.Error("connect es error", err)
-		return
-	}
-	consumer,err := sarama.NewConsumer(strings.Split("192.168.3.23:9092",","),nil)
+func consumerKafka(domain string) {
+	consumer,err := sarama.NewConsumer(strings.Split(domain,","),nil)
 	if err != nil{
 		logs.Error("failed to start consumer:", err)
 		return
@@ -50,6 +44,56 @@ func main() {
 		}
 		go getMsgFromPC(pc)
 	}
+}
 
-	select {}
+func consumerNanomsg(domain string) {
+	node := GYGUtils.SubNode(domain, "", nil)
+	for {
+		msg, _, err := GYGUtils.GSocketRecv(node)
+		if err != nil {
+			logs.Error("consumerNanomsg sub RecvMessage error", err.Error())
+			continue
+		}
+		rsp, err := esclient.Index().Index("logs").Type("logs").BodyString(string(msg)).Do(context.Background())
+		logs.Info("esclient bodystring rsp:", rsp, "error:", err)
+	}
+}
+
+func main() {
+	var err error
+	var esdomain, consumerdomain, consumertype string
+	app := cli.NewApp()
+	app.Flags = []cli.Flag {
+		cli.StringFlag{
+			Name: "searcher_es_domain",
+			Usage: "elastic domain",
+			Destination: &esdomain,
+		},
+		cli.StringFlag{
+			Name: "searcher_consumer_domain",
+			Usage: "consumer domain",
+			Value: "web.njnjdjc.com:29000",
+			Destination: &consumerdomain,
+		},
+		cli.StringFlag{
+			Name: "searcher_consumer_type",
+			Value: "nanomsg",
+			Usage: "consumer domain",
+			Destination: &consumertype,
+		},
+	}
+	_ = app.Run(os.Args)
+
+	_ = logs.SetLogger(logs.AdapterConsole)
+	esclient, err = elastic.NewClient(elastic.SetSniff(false),elastic.SetURL(esdomain))
+	if err != nil{
+		logs.Error("connect es error", err)
+		return
+	}
+
+	if consumertype == "kafka" {
+		consumerKafka(consumerdomain)
+	} else {
+		consumerNanomsg(consumerdomain)
+	}
 }
