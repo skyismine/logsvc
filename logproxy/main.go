@@ -7,6 +7,7 @@ import (
 	"github.com/micro/cli"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/server"
 	"github.com/micro/go-plugins/registry/etcdv3"
 	"logsvc/logproxy/storage"
 	"logsvc/proto/model"
@@ -19,6 +20,7 @@ var store storage.IFStorage
 type LogSvc struct {}
 
 func (h *LogSvc) Log(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
+	logs.Info("logproxy", "Log function", fmt.Sprintf("%#v", in))
 	data := new(storage.Logmsg)
 	data.Host = in.Host
 	data.App = in.App
@@ -36,9 +38,9 @@ func (h *LogSvc) Log(ctx context.Context, in *model.LogRequest, out *model.LogRe
 	return nil
 }
 
-// usage: ./proxy --proxy_kafka_domain 192.168.3.23:9092
+// usage: ./proxy
 func main() {
-	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/var/log/logsvc/logproxy.log"}`)
+	_ = logs.SetLogger(logs.AdapterConsole)
 
 	var storedomain string
 
@@ -54,11 +56,13 @@ func main() {
 	//使用etcd做服务发现
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
-			"192.168.3.23:2379",
+			"web.njnjdjc.com:2379",
 		}
-		etcdv3.Auth("root", "Erika6014")(options)
+		etcdv3.Auth("root", "11111")(options)
 	})
-	service := micro.NewService(micro.Name("cb.srv.log"), micro.Registry(reg))
+	service := micro.NewService(micro.Name("cb.srv.log"), micro.Registry(reg), micro.Address(":32000"), func(options *micro.Options) {
+		_ = options.Server.Init(server.Advertise("web.njnjdjc.com:32000"))
+	})
 	service.Options().Cmd.App().Flags = append(service.Options().Cmd.App().Flags, svcflags...)
 	service.Init()
 	rpcapi.RegisterLoggerHandler(service.Server(), new(LogSvc))

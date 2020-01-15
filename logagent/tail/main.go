@@ -46,9 +46,9 @@ func main() {
 	}
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
-			"192.168.3.23:2379",
+			"web.njnjdjc.com:2379",
 		}
-		etcdv3.Auth("root", "Erika6014")(options)
+		etcdv3.Auth("root", "11111")(options)
 	})
 
 	service := micro.NewService(micro.Registry(reg))
@@ -62,6 +62,7 @@ func main() {
 		Location: &tail.SeekInfo{Offset: 0, Whence: seek},
 		MustExist: false,
 		Poll: true,
+		Logger: logs.GetLogger("hpcloud", "tail"),
 	})
 	if err !=nil{
 		logs.Error("tail file err:",err)

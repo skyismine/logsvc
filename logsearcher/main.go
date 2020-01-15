@@ -59,6 +59,7 @@ func consumerNanomsg(domain string) {
 	}
 }
 
+// usage: ./searcher --searcher_es_domain="http://192.168.3.26:9200" --searcher_consumer_domain="tcp://web.njnjdjc.com:29000"
 func main() {
 	var err error
 	var esdomain, consumerdomain, consumertype string
@@ -72,7 +73,7 @@ func main() {
 		cli.StringFlag{
 			Name: "searcher_consumer_domain",
 			Usage: "consumer domain",
-			Value: "web.njnjdjc.com:29000",
+			Value: "tcp://web.njnjdjc.com:29000",
 			Destination: &consumerdomain,
 		},
 		cli.StringFlag{

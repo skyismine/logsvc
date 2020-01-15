@@ -146,6 +146,7 @@ func consumerNanomsg(domain string) {
 var hbfile *os.File
 var dshfile *os.File
 
+// usage: ./analysis --analysis_consumer_domain="tcp://web.njnjdjc.com:29000"
 func main() {
 	var err error
 	var consumerdomain, consumertype string
@@ -154,7 +155,7 @@ func main() {
 		cli.StringFlag{
 			Name: "analysis_consumer_domain",
 			Usage: "consumer domain",
-			Value: "web.njnjdjc.com:29000",
+			Value: "tcp://web.njnjdjc.com:29000",
 			Destination: &consumerdomain,
 		},
 		cli.StringFlag{
