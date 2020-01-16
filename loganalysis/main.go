@@ -2,12 +2,13 @@ package main
 
 import (
 	"CommonUtil/src/GYGUtils"
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/astaxie/beego/logs"
 	"github.com/micro/cli"
+	"gopkg.in/olivere/elastic.v5"
 	"logsvc/logproxy/storage"
 	"os"
 	"strings"
@@ -23,16 +24,24 @@ func getMsgFromPC(partitionConsumer sarama.PartitionConsumer) {
 		var pmsg storage.Logmsg
 		err := json.Unmarshal(msg.Value, &pmsg)
 		if err != nil {
-			logs.Error("json.Unmarshal error", err)
+			logs.Error("json.Unmarshal error", err, msg.Value)
 			continue
 		} else if pmsg.App != "screen" {
 			logs.Info("not screen msg ignore")
 			continue
 		} else if strings.Contains(pmsg.Msg, "NotificationHeartbeat") || strings.Contains(pmsg.Msg, "NotificationDevScreenHandler") {
 			elements := strings.Split(pmsg.Msg, " ")
-			record := msgmap[elements[2]]
-			svdmsg, ok := record[elements[4]]
-			record[elements[4]] = msg.Value
+			record, ok := msgmap[elements[4]]
+			if !ok {
+				logs.Info("It's not heartbeat or screen handler msg, elements[4]", pmsg.Msg)
+				continue
+			}
+			svdmsg, ok := record[elements[6]]
+			if !ok {
+				logs.Info("It's not heartbeat or screen handler msg, elements[6]", pmsg.Msg)
+				continue
+			}
+			record[elements[6]] = msg.Value
 			if ok {
 				var lastmsg storage.Logmsg
 				err := json.Unmarshal(svdmsg, &lastmsg)
@@ -51,13 +60,11 @@ func getMsgFromPC(partitionConsumer sarama.PartitionConsumer) {
 					continue
 				}
 				past := curtime.Unix()-lasttime.Unix()
-				buf := bytes.NewBuffer(svdmsg)
-				buf.WriteString("\n")
-				buf.Write(msg.Value)
-				if elements[2] == "NotificationHeartbeat" && past > 5  {
-					_, _ = hbfile.Write(buf.Bytes())
-				} else if elements[2] == "NotificationHeartbeat" && past > 60 {
-					_, _ = dshfile.Write(buf.Bytes())
+				if (elements[2] == "NotificationHeartbeat" && past > 5) || (elements[2] == "NotificationHeartbeat" && past > 60) {
+					rsp, err := esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(svdmsg)).Do(context.Background())
+					logs.Info("loganalysis", "esclient last bodystring rsp:", rsp, "error:", err)
+					rsp, err = esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(msg.Value)).Do(context.Background())
+					logs.Info("loganalysis", "esclient current bodystring rsp:", rsp, "error:", err)
 				}
 			}
 		} else {
@@ -100,16 +107,25 @@ func consumerNanomsg(domain string) {
 		var pmsg storage.Logmsg
 		err = json.Unmarshal(msg, &pmsg)
 		if err != nil {
-			logs.Error("json.Unmarshal error", err)
+			logs.Error("json.Unmarshal error", err, msg)
 			continue
 		} else if pmsg.App != "scrsvc" {
 			logs.Info("not screen msg ignore")
 			continue
 		} else if strings.Contains(pmsg.Msg, "NotificationHeartbeat") || strings.Contains(pmsg.Msg, "NotificationDevScreenHandler") {
 			elements := strings.Split(pmsg.Msg, " ")
-			record := msgmap[elements[2]]
-			svdmsg, ok := record[elements[4]]
-			record[elements[4]] = msg
+			logs.Info("elements", fmt.Sprintf("%#v", elements))
+			record, ok := msgmap[elements[4]]
+			if !ok {
+				logs.Info("It's not heartbeat or screen handler msg, elements[4]", pmsg.Msg)
+				continue
+			}
+			svdmsg, ok := record[elements[6]]
+			if !ok {
+				logs.Info("It's not heartbeat or screen handler msg, elements[6]", pmsg.Msg)
+				continue
+			}
+			record[elements[6]] = msg
 			if ok {
 				var lastmsg storage.Logmsg
 				err := json.Unmarshal(svdmsg, &lastmsg)
@@ -128,13 +144,11 @@ func consumerNanomsg(domain string) {
 					continue
 				}
 				past := curtime.Unix()-lasttime.Unix()
-				buf := bytes.NewBuffer(svdmsg)
-				buf.WriteString("\n")
-				buf.Write(msg)
-				if elements[2] == "NotificationHeartbeat" && past > 5  {
-					_, _ = hbfile.Write(buf.Bytes())
-				} else if elements[2] == "NotificationHeartbeat" && past > 60 {
-					_, _ = dshfile.Write(buf.Bytes())
+				if (elements[2] == "NotificationHeartbeat" && past > 5) || (elements[2] == "NotificationHeartbeat" && past > 60) {
+					rsp, err := esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(svdmsg)).Do(context.Background())
+					logs.Info("loganalysis", "esclient last bodystring rsp:", rsp, "error:", err)
+					rsp, err = esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(msg)).Do(context.Background())
+					logs.Info("loganalysis", "esclient current bodystring rsp:", rsp, "error:", err)
 				}
 			}
 		} else {
@@ -143,15 +157,18 @@ func consumerNanomsg(domain string) {
 	}
 }
 
-var hbfile *os.File
-var dshfile *os.File
-
-// usage: ./analysis --analysis_consumer_domain="tcp://web.njnjdjc.com:29000"
+var esclient *elastic.Client
+// usage: ./analysis --analysis_es_domain="http://192.168.3.26:9200" --analysis_consumer_domain="tcp://web.njnjdjc.com:29000"
 func main() {
 	var err error
-	var consumerdomain, consumertype string
+	var esdomain, consumerdomain, consumertype string
 	app := cli.NewApp()
 	app.Flags = []cli.Flag {
+		cli.StringFlag{
+			Name: "analysis_es_domain",
+			Usage: "elastic domain",
+			Destination: &esdomain,
+		},
 		cli.StringFlag{
 			Name: "analysis_consumer_domain",
 			Usage: "consumer domain",
@@ -172,18 +189,11 @@ func main() {
 	msgmap["NotificationDevScreenHandler"] = make(map[string][]byte)
 	_ = logs.SetLogger(logs.AdapterConsole)
 
-	hbfile, err = os.Create("hbfile.log")
-	if err != nil {
-		logs.Error("NotificationHeartbeat log file create error", err)
+	esclient, err = elastic.NewClient(elastic.SetSniff(false),elastic.SetURL(esdomain))
+	if err != nil{
+		logs.Error("connect es error", err)
 		return
 	}
-	defer func() { _ = hbfile.Close() }()
-	dshfile, err := os.Create("dshfile.log")
-	if err != nil {
-		logs.Error("NotificationDevScreenHandler log file create error", err)
-		return
-	}
-	defer func() { _ = dshfile.Close() }()
 
 	if consumertype == "kafka" {
 		consumerKafka(consumerdomain)
