@@ -85,7 +85,7 @@ func main() {
 	}
 	_ = app.Run(os.Args)
 
-	_ = logs.SetLogger(logs.AdapterConsole)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/opt/data/log/cloudbox/logsearcher.log"}`)
 	esclient, err = elastic.NewClient(elastic.SetSniff(false),elastic.SetURL(esdomain))
 	if err != nil{
 		logs.Error("connect es error", err)

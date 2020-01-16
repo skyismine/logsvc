@@ -17,7 +17,7 @@ import (
 
 // usage: ./tail --log_file /work/CloudBox/logsvc/Bin/screen.log --log_app scrsvc --log_type gostd --log_seek 2
 func main() {
-	_ = logs.SetLogger(logs.AdapterConsole)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/opt/data/log/cloudbox/logtail.log"}`)
 
 	var filename, app, logtype string
 	var seek int

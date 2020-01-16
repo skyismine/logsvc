@@ -187,7 +187,7 @@ func main() {
 	msgmap = make(map[string]map[string][]byte)
 	msgmap["NotificationHeartbeat"] = make(map[string][]byte)
 	msgmap["NotificationDevScreenHandler"] = make(map[string][]byte)
-	_ = logs.SetLogger(logs.AdapterConsole)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/opt/data/log/cloudbox/loganalysis.log"}`)
 
 	esclient, err = elastic.NewClient(elastic.SetSniff(false),elastic.SetURL(esdomain))
 	if err != nil{

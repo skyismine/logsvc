@@ -20,7 +20,6 @@ var store storage.IFStorage
 type LogSvc struct {}
 
 func (h *LogSvc) Log(ctx context.Context, in *model.LogRequest, out *model.LogResponse) error {
-	logs.Info("logproxy", "Log function", fmt.Sprintf("%#v", in))
 	data := new(storage.Logmsg)
 	data.Host = in.Host
 	data.App = in.App
@@ -40,7 +39,7 @@ func (h *LogSvc) Log(ctx context.Context, in *model.LogRequest, out *model.LogRe
 
 // usage: ./proxy
 func main() {
-	_ = logs.SetLogger(logs.AdapterConsole)
+	_ = logs.SetLogger(logs.AdapterFile, `{"filename": "/opt/data/log/cloudbox/logproxy.log"}`)
 
 	var storedomain string
 
