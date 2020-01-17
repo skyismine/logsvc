@@ -121,10 +121,6 @@ func consumerNanomsg(domain string) {
 				continue
 			}
 			svdmsg, ok := record[elements[6]]
-			if !ok {
-				logs.Info("It's not heartbeat or screen handler msg, elements[6]", pmsg.Msg)
-				continue
-			}
 			record[elements[6]] = msg
 			if ok {
 				var lastmsg storage.Logmsg
@@ -144,12 +140,15 @@ func consumerNanomsg(domain string) {
 					continue
 				}
 				past := curtime.Unix()-lasttime.Unix()
+				logs.Info("lasttime", lasttime.Format(time.RFC3339), "curtime", curtime.Format(time.RFC3339), "last msg past", past)
 				if (elements[2] == "NotificationHeartbeat" && past > 5) || (elements[2] == "NotificationHeartbeat" && past > 60) {
 					rsp, err := esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(svdmsg)).Do(context.Background())
 					logs.Info("loganalysis", "esclient last bodystring rsp:", rsp, "error:", err)
 					rsp, err = esclient.Index().Index("lostmsg").Type("lostmsg").BodyString(string(msg)).Do(context.Background())
 					logs.Info("loganalysis", "esclient current bodystring rsp:", rsp, "error:", err)
 				}
+			} else {
+				logs.Info("no saved last msg")
 			}
 		} else {
 			logs.Info("others screen msg ignore")

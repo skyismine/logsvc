@@ -18,7 +18,7 @@ func (parser *BegoologParser) Unmarshal(text string, request *model.LogRequest) 
 	request.Msg = text
 	txts := strings.Split(text, " ")
 	timestr := fmt.Sprintf("%s %s", txts[0], txts[1])
-	t, err := time.Parse("2006/01/02 15:04:05.999", timestr)
+	t, err := time.ParseInLocation("2006/01/02 15:04:05.999", timestr, time.Local)
 	if err != nil {
 		return errors.New(fmt.Sprintf("time: %s parse error: %s", timestr, err))
 	}

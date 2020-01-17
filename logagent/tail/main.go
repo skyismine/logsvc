@@ -83,7 +83,7 @@ func main() {
 			continue
 		}
 		line++
-		logs.Info("tail line", line)
+		logs.Info("tail line", line, msg)
 		if logparser, ok := parser.PManager[logtype]; ok {
 			var logmsg model.LogRequest
 			err := logparser.Unmarshal(msg.Text, &logmsg)
