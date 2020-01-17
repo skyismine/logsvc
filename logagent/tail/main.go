@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/astaxie/beego/logs"
 	"github.com/hpcloud/tail"
 	"github.com/micro/cli"
@@ -75,6 +76,11 @@ func main() {
 	var msg *tail.Line
 	var ok bool
 	var line int
+	var logparser parser.IFParser
+	if logparser, ok = parser.PManager[logtype]; !ok {
+		logs.Info("tail no log parser for app", app, logtype)
+		return
+	}
 	for {
 		msg, ok = <-tails.Lines
 		if !ok {
@@ -84,22 +90,19 @@ func main() {
 		}
 		line++
 		logs.Info("tail line", line, msg)
-		if logparser, ok := parser.PManager[logtype]; ok {
-			var logmsg model.LogRequest
-			err := logparser.Unmarshal(msg.Text, &logmsg)
-			if err != nil {
-				logs.Info("tail parser.Unmarshal error", err)
-				continue
-			}
-			logmsg.App = app
-			logmsg.Host = host
-			_, err = logsvcclient.Log(context.Background(), &logmsg)
-			if err != nil {
-				logs.Error("call srv error", err)
-				return
-			}
-		} else {
-			logs.Info("tail no log parser for app", app)
+		var logmsg model.LogRequest
+		err := logparser.Unmarshal(msg.Text, &logmsg)
+		if err != nil {
+			logs.Info("tail parser.Unmarshal error", err)
+			continue
+		}
+		logs.Info("log msg", fmt.Sprintf("%#v", logmsg))
+		logmsg.App = app
+		logmsg.Host = host
+		_, err = logsvcclient.Log(context.Background(), &logmsg)
+		if err != nil {
+			logs.Error("call srv error", err)
+			return
 		}
 	}
 }

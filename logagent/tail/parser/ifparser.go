@@ -34,6 +34,6 @@ func init() {
 	RegisterParser("logcat", &LogcatlogParser{})
 	RegisterParser("apache", &ApachelogParser{})
 	RegisterParser("gostd", &GostdlogParser{})
-	RegisterParser("beego", &GostdlogParser{})
+	RegisterParser("beego", &BegoologParser{})
 	RegisterParser("log4j", &Log4jlogParser{})
 }
