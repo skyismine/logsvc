@@ -23,28 +23,6 @@ func main() {
 	var filename, app, logtype string
 	var seek int
 
-	svcflags := []cli.Flag{
-		cli.StringFlag{
-			Name:   	 "log_file",
-			Usage:  	 "log file for tail",
-			Destination: &filename,
-		},
-		cli.StringFlag{
-			Name:   	 "log_app",
-			Usage:  	 "log app identification",
-			Destination: &app,
-		},
-		cli.StringFlag{
-			Name:   	 "log_type",
-			Usage:  	 "log type identification",
-			Destination: &logtype,
-		},
-		cli.IntFlag{
-			Name:        "log_seek",
-			Usage:       "log file seek offset: 0 seek relative to the origin of the file, 1 seek relative to the current offset, 2 seek relative to the end",
-			Destination: &seek,
-		},
-	}
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
 			"web.njnjdjc.com:2379",
@@ -52,8 +30,31 @@ func main() {
 		etcdv3.Auth("root", "11111")(options)
 	})
 
-	service := micro.NewService(micro.Registry(reg))
-	service.Options().Cmd.App().Flags = append(service.Options().Cmd.App().Flags, svcflags...)
+	service := micro.NewService(
+		micro.Flags(
+			cli.StringFlag{
+				Name:   	 "log_file",
+				Usage:  	 "log file for tail",
+				Destination: &filename,
+			},
+			cli.StringFlag{
+				Name:   	 "log_app",
+				Usage:  	 "log app identification",
+				Destination: &app,
+			},
+			cli.StringFlag{
+				Name:   	 "log_type",
+				Usage:  	 "log type identification",
+				Destination: &logtype,
+			},
+			cli.IntFlag{
+				Name:        "log_seek",
+				Usage:       "log file seek offset: 0 seek relative to the origin of the file, 1 seek relative to the current offset, 2 seek relative to the end",
+				Destination: &seek,
+			},
+		),
+		micro.Registry(reg),
+	)
 	service.Init()
 	logsvcclient := rpcapi.NewLoggerClient("cb.srv.log", service.Client())
 	logs.Info("tail log_file:", filename, ", log_app:", app, ", log_type:", logtype)

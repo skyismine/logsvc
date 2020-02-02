@@ -43,15 +43,6 @@ func main() {
 
 	var storedomain string
 
-	svcflags := []cli.Flag{
-		cli.StringFlag{
-			Name:   	 "proxy_storage_domain",
-			Usage:  	 "kafka domain where proxy used",
-			Value:		 "tcp://*:29000",
-			Destination: &storedomain,
-		},
-	}
-
 	//使用etcd做服务发现
 	reg := etcdv3.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{
@@ -59,10 +50,20 @@ func main() {
 		}
 		etcdv3.Auth("root", "11111")(options)
 	})
-	service := micro.NewService(micro.Name("cb.srv.log"), micro.Registry(reg), micro.Address(":32000"), func(options *micro.Options) {
-		_ = options.Server.Init(server.Advertise("web.njnjdjc.com:32000"))
-	})
-	service.Options().Cmd.App().Flags = append(service.Options().Cmd.App().Flags, svcflags...)
+	service := micro.NewService(
+		micro.Flags(cli.StringFlag{
+			Name:   	 "proxy_storage_domain",
+			Usage:  	 "kafka domain where proxy used",
+			Value:		 "tcp://*:29000",
+			Destination: &storedomain,
+		}),
+		micro.Name("cb.srv.log"),
+		micro.Registry(reg),
+		micro.Address(":32000"),
+		func(options *micro.Options) {
+			_ = options.Server.Init(server.Advertise("web.njnjdjc.com:32000"))
+		},
+	)
 	service.Init()
 	rpcapi.RegisterLoggerHandler(service.Server(), new(LogSvc))
 
